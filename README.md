@@ -45,8 +45,7 @@ playtime_reset_midnight = true
 ```
 
 ## Original mod
-This mod is a version and quality upgrade port from the mod *Playtime Limiter* made by @StunterLetsPlay.
+This mod is a version and quality upgrade port from the mod *Playtime Limiter* made by [@StunterLetsPlay](https://github.com/StunterLetsPlay).
 Links to original mod:
 - [CurseForge](https://www.curseforge.com/minecraft/mc-mods/playtime-limiter)
-- [Github](https://github.com/StunterLetsPlay/Playtime_Limiter)
-- [StunterLetsPlay (Original Author)](https://github.com/StunterLetsPlay)
+- [Mod in Github](https://github.com/StunterLetsPlay/Playtime_Limiter)

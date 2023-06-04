@@ -50,11 +50,20 @@ public class  PlayerJoinListener {
             PlaytimeDataManager.getTrackedPlayers().forEach(playerMP -> {
                 if (playerMP.hasDisconnected()) {
                     PlaytimeDataManager.savePlayer(playerMP);
-                    PlaytimeDataManager.stopTracking(playerMP);
+                    PlaytimeDataManager.stopTrackingTimeout(playerMP);
                     return;
                 }
 
                 CompoundTag compound = playerMP.getPersistentData();
+
+                /*
+                    Total play time Logic
+                 */
+                if (ConfigManager.TRACK_TOTAL_PLAYTIME.get()) {
+                    PlaytimeDataManager.setTotalPlayedTime(
+                            playerMP, PlaytimeDataManager.getTotalPlayedTime(playerMP) + 1
+                    );
+                }
 
                 /*
                     Playtime Logic
@@ -92,7 +101,7 @@ public class  PlayerJoinListener {
 
                 compound.remove("timeout");
                 compound.remove("playtime");
-                PlaytimeDataManager.resetTime(playerMP);
+                PlaytimeDataManager.resetTimeout(playerMP);
             });
         }
     }

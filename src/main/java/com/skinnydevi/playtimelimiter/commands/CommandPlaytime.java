@@ -2,6 +2,9 @@ package com.skinnydevi.playtimelimiter.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.skinnydevi.playtimelimiter.config.ConfigManager;
 import com.skinnydevi.playtimelimiter.playtime.PlaytimeDataManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -17,9 +20,10 @@ public class CommandPlaytime{
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-                Commands.literal(CMD_PREFIX).requires(csource -> csource.hasPermission(2))
+                Commands.literal(CMD_PREFIX).requires(src -> src.hasPermission(0))
                     .then(playtimeLeft())
                     .then(playtimeReset())
+                    .then(playtimeTotalTime())
         );
     }
 
@@ -33,21 +37,103 @@ public class CommandPlaytime{
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> playtimeReset() {
-        return Commands.literal("reset").requires(csource -> csource.hasPermission(4))
-                .then(Commands.argument("targetplayer", EntityArgument.players()).executes(ctx -> {
-                    ServerPlayer targetPlayer = EntityArgument.getPlayer(ctx, "targetplayer");
+        return Commands.literal("reset").requires(src -> src.hasPermission(2))
+                .then(playtimeResetTimeout())
+                .then(playtimeResetTotalTime())
+                .then(playtimeResetAll());
+    }
 
-                    targetPlayer.getPersistentData().remove("timeout");
-                    targetPlayer.getPersistentData().remove("timeLeft");
-                    PlaytimeDataManager.resetTime(targetPlayer);
-                    Objects.requireNonNull(ctx.getSource().getPlayer()).sendSystemMessage(
-                            Component.literal(
-                                    ChatFormatting.GREEN + "You have successfully reset the Playtime and Timeout for "
-                                            + ChatFormatting.AQUA + targetPlayer.getName().getString()
-                            )
-                    );
+    private static LiteralArgumentBuilder<CommandSourceStack> playtimeResetAll() {
+        return Commands.literal("all")
+                .then(Commands.argument("targetPlayer", EntityArgument.players()).executes(ctx -> {
+                    resetTimeout(ctx);
+                    resetTotalTime(ctx);
+
+                    return 1;
+                }
+            ));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> playtimeResetTimeout() {
+        return Commands.literal("timeout")
+                .then(Commands.argument("targetPlayer", EntityArgument.players()).executes(ctx -> {
+                    resetTimeout(ctx);
 
                     return 1;
                 }));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> playtimeResetTotalTime() {
+        return Commands.literal("totalTime")
+                .then(Commands.argument("targetPlayer", EntityArgument.players()).executes(ctx -> {
+                    resetTotalTime(ctx);
+
+                    return 1;
+                }));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> playtimeTotalTime() {
+        return Commands.literal("total").executes(ctx -> {
+            if (!ConfigManager.TRACK_TOTAL_PLAYTIME.get()) {
+                Objects.requireNonNull(ctx.getSource().getPlayer()).sendSystemMessage(
+                        Component.literal(ChatFormatting.AQUA + "Total play time tracking is disabled.")
+                );
+
+                return 1;
+            }
+
+            ServerPlayer player = ctx.getSource().getPlayer();
+
+            if (player == null) return 0;
+
+            long[] timeplayed = PlaytimeDataManager.getFormattedTotalPlayTime(player);
+
+            player.sendSystemMessage(
+                    Component.literal(
+                            ChatFormatting.GREEN + "You have played a total of "
+                                    + ChatFormatting.RED + timeplayed[0] + ChatFormatting.GREEN + " days, "
+                                    + ChatFormatting.RED + timeplayed[1] + ChatFormatting.GREEN + " hours, "
+                                    + ChatFormatting.RED + timeplayed[2] + ChatFormatting.GREEN + " minutes and "
+                                    + ChatFormatting.RED + timeplayed[3] + ChatFormatting.GREEN + " seconds"
+                    )
+            );
+
+            return 1;
+        });
+    }
+
+    private static void resetTimeout(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer targetPlayer = EntityArgument.getPlayer(ctx, "targetPlayer");
+
+        targetPlayer.getPersistentData().remove("timeout");
+        targetPlayer.getPersistentData().remove("timeLeft");
+        PlaytimeDataManager.resetTimeout(targetPlayer);
+        Objects.requireNonNull(ctx.getSource().getPlayer()).sendSystemMessage(
+                Component.literal(
+                        ChatFormatting.GREEN + "You have successfully reset the Timeout for "
+                                + ChatFormatting.AQUA + targetPlayer.getName().getString()
+                )
+        );
+    }
+
+    private static void resetTotalTime(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        if (!ConfigManager.TRACK_TOTAL_PLAYTIME.get()) {
+            Objects.requireNonNull(ctx.getSource().getPlayer()).sendSystemMessage(
+                    Component.literal(ChatFormatting.AQUA + "Total play time tracking is disabled.")
+            );
+
+            return;
+        }
+
+        ServerPlayer targetPlayer = EntityArgument.getPlayer(ctx, "targetPlayer");
+
+        targetPlayer.getPersistentData().remove("timePlayed");
+        PlaytimeDataManager.resetTotalTime(targetPlayer);
+        Objects.requireNonNull(ctx.getSource().getPlayer()).sendSystemMessage(
+                Component.literal(
+                        ChatFormatting.GREEN + "You have successfully reset the Playtime for "
+                                + ChatFormatting.AQUA + targetPlayer.getName().getString()
+                )
+        );
     }
 }

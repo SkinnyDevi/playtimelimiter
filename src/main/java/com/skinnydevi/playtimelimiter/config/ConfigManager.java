@@ -12,6 +12,7 @@ public class ConfigManager {
     public static final ForgeConfigSpec.BooleanValue PLAYTIME_WARN_KICK;
     public static final ForgeConfigSpec.BooleanValue PLAYTIME_RESET_RECONNECT;
     public static final ForgeConfigSpec.BooleanValue PLAYTIME_RESET_MIDNIGHT;
+    public static final ForgeConfigSpec.BooleanValue TRACK_TOTAL_PLAYTIME;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -22,6 +23,7 @@ public class ConfigManager {
         PLAYTIME_WARN_KICK = builder.comment("If Players should get warned before they get kicked. \nThey would get warned: {30, 15, 10, 5, 3, 1} Minute(s) before being Kicked!").define("playtime_warn_kick", true);
         PLAYTIME_RESET_RECONNECT = builder.comment("If the Playtime should be reset after the Player Reconnects").define("playtime_reset_reconnect", false);
         PLAYTIME_RESET_MIDNIGHT = builder.comment("If the Playtime should be reset after once the Server detects that a new (IRL) Day has started since the last time the Player has joined").define("playtime_reset_midnight", true);
+        TRACK_TOTAL_PLAYTIME = builder.comment("Enable or disable tracking the player's total play time.").define("track_total_playtime", true);
 
         SPEC = builder.build();
     }

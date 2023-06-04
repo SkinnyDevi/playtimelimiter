@@ -1,6 +1,5 @@
 package com.skinnydevi.playtimelimiter.playtime;
 
-import com.skinnydevi.playtimelimiter.PlaytimeLimiter;
 import com.skinnydevi.playtimelimiter.config.ConfigManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
@@ -15,6 +14,7 @@ import java.util.HashMap;
 
 public class PlaytimeDataManager {
     private static final HashMap<ServerPlayer, Integer> data = new HashMap<>();
+    private static final HashMap<ServerPlayer, Integer> timePlayedData = new HashMap<>();
 
     public static void loadPlayer(ServerPlayer player) {
         CompoundTag nbt = player.getPersistentData();
@@ -32,6 +32,10 @@ public class PlaytimeDataManager {
             timeLeft = ConfigManager.PLAYTIME_LENGTH.get();
         }
 
+        if (ConfigManager.TRACK_TOTAL_PLAYTIME.get()) {
+            setTotalPlayedTime(player, nbt.contains("timePlayed") ? nbt.getInt("timePlayed") : 0);
+        }
+
         setRemainingTime(player, timeLeft);
     }
 
@@ -39,9 +43,11 @@ public class PlaytimeDataManager {
         CompoundTag nbt = player.getPersistentData();
         nbt.putInt("timeLeft", getRemainingTime(player));
         nbt.putInt("dayLeft", Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
+
+        if (ConfigManager.TRACK_TOTAL_PLAYTIME.get()) nbt.putInt("timePlayed", getTotalPlayedTime(player));
     }
 
-    public static void stopTracking(ServerPlayer player) {
+    public static void stopTrackingTimeout(ServerPlayer player) {
         data.remove(player);
     }
 
@@ -55,14 +61,35 @@ public class PlaytimeDataManager {
         switch (timeLeft) {
             case 60, 60 * 3, 60 * 5, 60 * 10, 60 * 15, 60 * 30 ->
                 player.sendSystemMessage(Component.literal(ChatFormatting.GREEN + "You have " + ChatFormatting.RED +
-                        (timeLeft / 60) + ChatFormatting.GREEN + " Minutes of Playtime left!")
+                        (timeLeft / 60) + ChatFormatting.GREEN + " Minute(s) of Playtime left!")
                 );
 
         }
     }
 
+
     public static int getRemainingTime(ServerPlayer player) {
         return data.getOrDefault(player, ConfigManager.PLAYTIME_LENGTH.get());
+    }
+
+    public static void setTotalPlayedTime(ServerPlayer player, int totalTime) {
+        if (!ConfigManager.TRACK_TOTAL_PLAYTIME.get()) return;
+        timePlayedData.put(player, totalTime);
+    }
+
+    public static int getTotalPlayedTime(ServerPlayer player) {
+        return timePlayedData.getOrDefault(player, 0);
+    }
+
+    public static long[] getFormattedTotalPlayTime(ServerPlayer player) {
+        Duration time = Duration.ofSeconds(getTotalPlayedTime(player));
+
+        return new long[]{
+                time.toDaysPart(),
+                time.toHoursPart(),
+                time.toMinutesPart(),
+                time.toSecondsPart()
+        };
     }
 
     public static String getRemainingSeconds(ServerPlayer player) {
@@ -83,9 +110,15 @@ public class PlaytimeDataManager {
                 + ChatFormatting.RED +  getRemainingSeconds(player) + ChatFormatting.GREEN + " seconds";
     }
 
-    public static void resetTime(ServerPlayer playerMP) {
-        stopTracking(playerMP);
-        setRemainingTime(playerMP, PlaytimeDataManager.getRemainingTime(playerMP));
+    public static void resetTimeout(ServerPlayer playerMP) {
+        stopTrackingTimeout(playerMP);
+        setRemainingTime(playerMP, getRemainingTime(playerMP));
+    }
+
+    public static void resetTotalTime(ServerPlayer player) {
+        if (!ConfigManager.TRACK_TOTAL_PLAYTIME.get()) return;
+        timePlayedData.remove(player);
+        setTotalPlayedTime(player, getTotalPlayedTime(player));
     }
 
     public static ArrayList<ServerPlayer> getTrackedPlayers() {

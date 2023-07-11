@@ -3,6 +3,7 @@ package com.skinnydevi.playtimelimiter.server;
 import com.skinnydevi.playtimelimiter.PlaytimeLimiter;
 import com.skinnydevi.playtimelimiter.config.ConfigManager;
 import com.skinnydevi.playtimelimiter.playtime.PlaytimeDataManager;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -13,11 +14,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.text.DecimalFormat;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.concurrent.TimeUnit;
 
 
 public class  PlayerJoinListener {
-
     @SubscribeEvent
     public void onMPPlayerJoin(PlayerEvent.PlayerLoggedInEvent e) {
         if (!(e.getEntity() instanceof ServerPlayer))
@@ -39,6 +40,7 @@ public class  PlayerJoinListener {
     }
 
     private int tick;
+    private LocalTime oldTrackerTime = LocalTime.now();
 
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
@@ -47,6 +49,11 @@ public class  PlayerJoinListener {
         tick++;
 
         if (tick % 20 == 0) {
+            LocalTime newTrackerTime = LocalTime.now();
+            float diff = Duration.between(oldTrackerTime, newTrackerTime).toMillis() / 1000f;
+            oldTrackerTime = newTrackerTime;
+            int workingSecond = Math.round(diff);
+
             PlaytimeDataManager.getTrackedPlayers().forEach(playerMP -> {
                 if (playerMP.hasDisconnected()) {
                     PlaytimeDataManager.savePlayer(playerMP);
@@ -61,14 +68,14 @@ public class  PlayerJoinListener {
                  */
                 if (ConfigManager.TRACK_TOTAL_PLAYTIME.get()) {
                     PlaytimeDataManager.setTotalPlayedTime(
-                            playerMP, PlaytimeDataManager.getTotalPlayedTime(playerMP) + 1
+                            playerMP, PlaytimeDataManager.getTotalPlayedTime(playerMP) + workingSecond
                     );
                 }
 
                 /*
                     Playtime Logic
                  */
-                int newTime = PlaytimeDataManager.getRemainingTime(playerMP) - 1;
+                int newTime = PlaytimeDataManager.getRemainingTime(playerMP) - workingSecond;
                 PlaytimeDataManager.setRemainingTime(playerMP, newTime);
 
                 if (!compound.contains("timeout")) {

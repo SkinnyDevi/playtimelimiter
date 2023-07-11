@@ -14,7 +14,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.text.DecimalFormat;
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +51,9 @@ public class  PlayerJoinListener {
         tick++;
 
         if (tick % 20 == 0) {
+            final boolean midnightResetEnabled = ConfigManager.PLAYTIME_RESET_MIDNIGHT.get();
             int workingSecond = this.deltaTime();
-            boolean dayChange = this.dayChange() && ConfigManager.PLAYTIME_RESET_MIDNIGHT.get();
+            boolean dayChange = this.dayChange() && midnightResetEnabled;
 
             PlaytimeDataManager.getTrackedPlayers().forEach(playerMP -> {
                 if (playerMP.hasDisconnected()) {
@@ -89,7 +89,11 @@ public class  PlayerJoinListener {
 
                 if (!compound.contains("timeout")) {
                     if (newTime <= 0) {
-                        int timeout = ConfigManager.PLAYTIME_TIMEOUT.get();
+                        long timeout;
+
+                        if (midnightResetEnabled) timeout = this.msToSec(this.getTimeUntilMidnight());
+                        else timeout = ConfigManager.PLAYTIME_TIMEOUT.get();
+
                         kickPlayer(playerMP, timeout);
 
                         if (!compound.contains("timeout"))
@@ -106,7 +110,7 @@ public class  PlayerJoinListener {
                 if (timeLeft >= System.currentTimeMillis()) {
                     // Add Delay to rightfully show the Kick Message each time
                     if (compound.contains("kick") && compound.getBoolean("kick")) {
-                        kickPlayer(playerMP, TimeUnit.MILLISECONDS.toSeconds(timeLeft - System.currentTimeMillis()));
+                        kickPlayer(playerMP, this.msToSec(timeLeft - System.currentTimeMillis()));
                         compound.remove("kick");
                     } else {
                         compound.putBoolean("kick", true);
@@ -118,6 +122,10 @@ public class  PlayerJoinListener {
                 PlaytimeDataManager.resetTimeout(playerMP);
             });
         }
+    }
+
+    private long msToSec(long ms) {
+        return TimeUnit.MILLISECONDS.toSeconds(ms);
     }
 
     private int deltaTime() {
@@ -142,6 +150,16 @@ public class  PlayerJoinListener {
         oldDayMillis = newDayMillis;
 
         return oldDay != newDay;
+    }
+
+    private long getTimeUntilMidnight() {
+        final long MILLIS_IN_A_DAY = 1000 * 60 * 60 * 24;
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new Date(cal.getTime().getTime() + MILLIS_IN_A_DAY));
+        cal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        return cal.getTimeInMillis() - System.currentTimeMillis();
     }
 
     private void kickPlayer(ServerPlayer playerMP, long duration){

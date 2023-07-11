@@ -110,6 +110,13 @@ public class PlaytimeDataManager {
                 + ChatFormatting.RED +  getRemainingSeconds(player) + ChatFormatting.GREEN + " seconds";
     }
 
+    public static void resetMidnight(ServerPlayer player) {
+        resetTimeout(player);
+        player.sendSystemMessage(Component.literal(
+                ChatFormatting.RED + "New day! " + ChatFormatting.GREEN + "Timeout has been refreshed."
+        ));
+    }
+
     public static void resetTimeout(ServerPlayer playerMP) {
         stopTrackingTimeout(playerMP);
         setRemainingTime(playerMP, getRemainingTime(playerMP));

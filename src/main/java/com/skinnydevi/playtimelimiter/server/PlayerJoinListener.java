@@ -13,8 +13,10 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.text.DecimalFormat;
-import java.time.Duration;
-import java.time.LocalTime;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 
@@ -41,6 +43,7 @@ public class  PlayerJoinListener {
 
     private int tick;
     private LocalTime oldTrackerTime = LocalTime.now();
+    private long oldDayMillis = System.currentTimeMillis();
 
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
@@ -49,10 +52,8 @@ public class  PlayerJoinListener {
         tick++;
 
         if (tick % 20 == 0) {
-            LocalTime newTrackerTime = LocalTime.now();
-            float diff = Duration.between(oldTrackerTime, newTrackerTime).toMillis() / 1000f;
-            oldTrackerTime = newTrackerTime;
-            int workingSecond = Math.round(diff);
+            int workingSecond = this.deltaTime();
+            boolean dayChange = this.dayChange() && ConfigManager.PLAYTIME_RESET_MIDNIGHT.get();
 
             PlaytimeDataManager.getTrackedPlayers().forEach(playerMP -> {
                 if (playerMP.hasDisconnected()) {
@@ -70,6 +71,14 @@ public class  PlayerJoinListener {
                     PlaytimeDataManager.setTotalPlayedTime(
                             playerMP, PlaytimeDataManager.getTotalPlayedTime(playerMP) + workingSecond
                     );
+                }
+
+                /*
+                    Midnight playtime reset Logic
+                 */
+                if (dayChange) {
+                    PlaytimeDataManager.resetMidnight(playerMP);
+                    return;
                 }
 
                 /*
@@ -93,7 +102,6 @@ public class  PlayerJoinListener {
                 /*
                     Timeout Logic
                  */
-
                 long timeLeft = compound.getLong("timeout");
                 if (timeLeft >= System.currentTimeMillis()) {
                     // Add Delay to rightfully show the Kick Message each time
@@ -107,10 +115,33 @@ public class  PlayerJoinListener {
                 }
 
                 compound.remove("timeout");
-                compound.remove("playtime");
                 PlaytimeDataManager.resetTimeout(playerMP);
             });
         }
+    }
+
+    private int deltaTime() {
+        LocalTime newTrackerTime = LocalTime.now();
+        float diff = Duration.between(oldTrackerTime, newTrackerTime).toMillis() / 1000f;
+        oldTrackerTime = newTrackerTime;
+        return Math.round(diff);
+    }
+
+    private boolean dayChange() {
+        long newDayMillis = System.currentTimeMillis();
+        Date oldDate = new Date(oldDayMillis);
+        Date newDate = new Date(newDayMillis);
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(oldDate);
+        int oldDay = cal.get(Calendar.DAY_OF_MONTH);
+
+        cal.setTime(newDate);
+        int newDay = cal.get(Calendar.DAY_OF_MONTH);
+
+        oldDayMillis = newDayMillis;
+
+        return oldDay != newDay;
     }
 
     private void kickPlayer(ServerPlayer playerMP, long duration){

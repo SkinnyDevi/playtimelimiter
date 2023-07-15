@@ -14,12 +14,11 @@ public class PlaytimeLimiter
 {
     public static final String MODID = "playtimelimiter";
     public static final Logger LOGGER = LogUtils.getLogger();
-    private static PlayerJoinListener playerJoinListener;
 
     public PlaytimeLimiter()
     {
-        playerJoinListener = new PlayerJoinListener();
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ConfigManager.SPEC, "playtimelimiter-server.toml");
+        PlayerJoinListener playerJoinListener = new PlayerJoinListener();
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigManager.SPEC, "playtimelimiter.toml");
 
         MinecraftForge.EVENT_BUS.register(playerJoinListener);
     }

@@ -52,6 +52,7 @@ public class  PlayerJoinListener {
 
         if (tick % 20 == 0) {
             final boolean midnightResetEnabled = ConfigManager.PLAYTIME_RESET_MIDNIGHT.get();
+            final boolean allowTimeoutInMidnight = ConfigManager.ALLOW_TIMEOUT_WITH_MIDNIGHT.get();
             int workingSecond = this.deltaTime();
             boolean dayChange = this.dayChange() && midnightResetEnabled;
 
@@ -89,10 +90,14 @@ public class  PlayerJoinListener {
 
                 if (!compound.contains("timeout")) {
                     if (newTime <= 0) {
-                        long timeout;
+                        long timeout = ConfigManager.PLAYTIME_TIMEOUT.get();
 
-                        if (midnightResetEnabled) timeout = this.msToSec(this.getTimeUntilMidnight());
-                        else timeout = ConfigManager.PLAYTIME_TIMEOUT.get();
+                        if (midnightResetEnabled) {
+                            long midnightTimeout = this.msToSec(this.getTimeUntilMidnight());
+
+                            if (allowTimeoutInMidnight) timeout = this.shortestTimeout(midnightTimeout, timeout);
+                            else timeout = midnightTimeout;
+                        }
 
                         kickPlayer(playerMP, timeout);
 
@@ -126,6 +131,10 @@ public class  PlayerJoinListener {
 
     private long msToSec(long ms) {
         return TimeUnit.MILLISECONDS.toSeconds(ms);
+    }
+
+    private long shortestTimeout(long tm1, long tm2) {
+        return Math.min(tm1, tm2);
     }
 
     private int deltaTime() {

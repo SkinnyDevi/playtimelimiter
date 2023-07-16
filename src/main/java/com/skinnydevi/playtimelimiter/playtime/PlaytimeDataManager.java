@@ -57,13 +57,11 @@ public class PlaytimeDataManager {
         if (!ConfigManager.PLAYTIME_WARN_KICK.get())
             return;
 
-
         switch (timeLeft) {
             case 60, 60 * 3, 60 * 5, 60 * 10, 60 * 15, 60 * 30 ->
                 player.sendSystemMessage(Component.literal(ChatFormatting.GREEN + "You have " + ChatFormatting.RED +
                         (timeLeft / 60) + ChatFormatting.GREEN + " Minute(s) of Playtime left!")
                 );
-
         }
     }
 

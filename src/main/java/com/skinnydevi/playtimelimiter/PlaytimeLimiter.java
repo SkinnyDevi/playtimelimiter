@@ -18,7 +18,7 @@ public class PlaytimeLimiter
     public PlaytimeLimiter()
     {
         PlayerJoinListener playerJoinListener = new PlayerJoinListener();
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigManager.SPEC, "playtimelimiter.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigManager.SPEC, "playtimelimiter-config.toml");
 
         MinecraftForge.EVENT_BUS.register(playerJoinListener);
     }

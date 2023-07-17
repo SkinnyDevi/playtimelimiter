@@ -90,19 +90,17 @@ public class  PlayerJoinListener {
 
                 if (!compound.contains("timeout")) {
                     if (newTime <= 0) {
-                        long timeout = ConfigManager.PLAYTIME_TIMEOUT.get();
+                        long timeout = this.secToMs(ConfigManager.PLAYTIME_TIMEOUT.get());
 
                         if (midnightResetEnabled) {
-                            long midnightTimeout = this.msToSec(this.getTimeUntilMidnight());
+                            long midnightTimeout = this.getTimeUntilMidnight();
 
-                            if (allowTimeoutInMidnight) timeout = this.shortestTimeout(midnightTimeout, timeout);
+                            if (allowTimeoutInMidnight) timeout = Math.min(midnightTimeout, timeout);
                             else timeout = midnightTimeout;
                         }
 
-                        kickPlayer(playerMP, timeout);
-
-                        if (!compound.contains("timeout"))
-                            compound.putLong("timeout", System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(timeout));
+                        this.kickPlayer(playerMP, this.msToSec(timeout));
+                        compound.putLong("timeout", System.currentTimeMillis() + this.secToMs(timeout));
                     }
 
                     return;
@@ -115,7 +113,7 @@ public class  PlayerJoinListener {
                 if (timeLeft >= System.currentTimeMillis()) {
                     // Add Delay to rightfully show the Kick Message each time
                     if (compound.contains("kick") && compound.getBoolean("kick")) {
-                        kickPlayer(playerMP, this.msToSec(timeLeft - System.currentTimeMillis()));
+                        this.kickPlayer(playerMP, this.msToSec(timeLeft - System.currentTimeMillis()));
                         compound.remove("kick");
                     } else {
                         compound.putBoolean("kick", true);
@@ -124,6 +122,7 @@ public class  PlayerJoinListener {
                 }
 
                 compound.remove("timeout");
+                compound.remove("kick");
                 PlaytimeDataManager.resetTimeout(playerMP);
             });
         }
@@ -133,8 +132,8 @@ public class  PlayerJoinListener {
         return TimeUnit.MILLISECONDS.toSeconds(ms);
     }
 
-    private long shortestTimeout(long tm1, long tm2) {
-        return Math.min(tm1, tm2);
+    private long secToMs(long sec) {
+        return TimeUnit.SECONDS.toMillis(sec);
     }
 
     private int deltaTime() {

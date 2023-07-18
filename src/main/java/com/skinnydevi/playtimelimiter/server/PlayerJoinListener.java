@@ -99,8 +99,8 @@ public class  PlayerJoinListener {
                             else timeout = midnightTimeout;
                         }
 
+                        compound.putLong("timeout", System.currentTimeMillis() + timeout);
                         this.kickPlayer(playerMP, this.msToSec(timeout));
-                        compound.putLong("timeout", System.currentTimeMillis() + this.secToMs(timeout));
                     }
 
                     return;
